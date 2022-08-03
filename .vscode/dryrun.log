@@ -1,0 +1,4 @@
+make.exe: Entering directory 'c:/Users/Edison/Desktop/Cinnox/Golang_ChatBot'
+docker-compose up
+make.exe: Leaving directory 'c:/Users/Edison/Desktop/Cinnox/Golang_ChatBot'
+ 
