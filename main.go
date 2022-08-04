@@ -14,45 +14,39 @@ package main
 
 import (
 	"fmt"
+
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 
-	"github.com/joho/godotenv"
+	configpackage "golang_chatbot/config"
+	sqlbublic "golang_chatbot/sqlpublic"
+
 	"github.com/line/line-bot-sdk-go/v7/linebot"
-	"github.com/spf13/viper"
 )
 
 var bot *linebot.Client
 
 func main() {
 
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./config")
+	sqlbublic.ConnectToDB()
+	sqlbublic.List()
+	var err error
+	config, err := configpackage.InitConfig()
 
-	err := viper.ReadInConfig()
-	if err != nil {
-		panic("讀取設定檔出現錯誤，原因為：" + err.Error())
-	}
+	bot, err = linebot.New(config.LineChannelSecret, config.LineChannelToken)
 
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("Missing .env file.")
-	}
-
-	bot, err = linebot.New(viper.GetString("Line.ChannelSecret"), viper.GetString("Line.ChannelToken"))
 	log.Println("Bot:", bot, " err:", err)
 	http.HandleFunc("/callback", CallbackHandler)
 	http.HandleFunc("/", indexHandler)
 
-	port := os.Getenv(viper.GetString("Server.PORT"))
+	port := config.Port
 	addr := fmt.Sprintf(":%s", port)
 	http.ListenAndServe(addr, nil)
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-
+	fmt.Print("sssss")
 	fmt.Fprintf(w, "HTTP GET index!")
 }
 
@@ -69,6 +63,8 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, event := range events {
+		UserID := event.Source.UserID
+		Time := event.Timestamp
 		if event.Type == linebot.EventTypeMessage {
 			switch message := event.Message.(type) {
 			// Handle only on text message
@@ -80,7 +76,10 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 				}
 				// message.ID: Msg unique ID
 				// message.Text: Msg text
-				if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("msg ID:"+message.ID+":"+"Get:"+message.Text+" , \n OK! remain message:"+strconv.FormatInt(quota.Value, 10))).Do(); err != nil {
+
+				sqlbublic.SaveMessage(UserID, message.Text, Time)
+				TimeToString := event.Timestamp.String()
+				if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("msg ID:"+message.ID+":"+"Get:"+message.Text+"使用者ID: "+UserID+"時間: "+TimeToString+" , \n OK! remain message:"+strconv.FormatInt(quota.Value, 10))).Do(); err != nil {
 					log.Print(err)
 				}
 
@@ -91,7 +90,7 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 					kw = kw + "," + k
 				}
 
-				outStickerResult := fmt.Sprintf("收到貼圖訊息: %s, pkg: %s kw: %s  text: %s", message.StickerID, message.PackageID, kw, message.Text)
+				outStickerResult := fmt.Sprintf("收到貼圖訊息: %s, pkg: %s kw: %s  text: %s ", message.StickerID, message.PackageID, kw, message.Text)
 				if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(outStickerResult)).Do(); err != nil {
 					log.Print(err)
 				}
