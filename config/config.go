@@ -17,12 +17,12 @@ func InitConfig() (config model.Config, err error) {
 		panic("讀取設定檔出現錯誤，原因為：" + err.Error())
 	}
 
-	returnmodel := model.Config{
+	config = model.Config{
 		LineChannelSecret: viper.GetString("Line.ChannelSecret"),
 		LineChannelToken:  viper.GetString("Line.ChannelToken"),
 		MongoAccount:      viper.GetString("MongoDB.MongoAccount"),
 		MongoPassword:     viper.GetString("MongoDB.MongoPassword"),
 	}
 
-	return returnmodel, err
+	return config, err
 }

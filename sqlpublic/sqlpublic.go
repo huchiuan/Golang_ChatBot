@@ -2,7 +2,6 @@ package sqlbublic
 
 import (
 	"context"
-	"fmt"
 	configpackage "golang_chatbot/config"
 	"log"
 	"time"
@@ -14,34 +13,32 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var Client *mongo.Client
-
-func ConnectToDB() {
+func ConnectToDB() (client *mongo.Client) {
 	config, err := configpackage.InitConfig()
 
 	log.Print(config.LineChannelSecret)
 	URI := "mongodb://" + config.MongoAccount + ":" + config.MongoPassword + "@127.0.0.1:27017/?authSource=admin"
 	clientOptions := options.Client().ApplyURI(URI)
 	var ctx = context.TODO()
+
 	// Connect to MongoDB
-	Client, err = mongo.Connect(ctx, clientOptions)
+	client, err = mongo.Connect(ctx, clientOptions)
 	if err != nil {
 		log.Fatal(err)
 	}
 	// Check the connection
-	err = Client.Ping(ctx, nil)
+	err = client.Ping(ctx, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("Connected to MongoDB!")
 
-	// defer client.Disconnect(ctx)
+	return client
 
 }
 
-func SaveMessage(userid string, message string, time time.Time) {
+func SaveMessage(client *mongo.Client, userid string, message string, time time.Time) {
 
-	collection := Client.Database("linemessage").Collection("linemessage")
+	collection := client.Database("linemessage").Collection("linemessage")
 
 	insertmodel := model.LineMessage{
 		UserID:  userid,
@@ -49,19 +46,15 @@ func SaveMessage(userid string, message string, time time.Time) {
 		Time:    time,
 	}
 
-	insertResult, err := collection.InsertOne(context.TODO(), insertmodel)
+	_, err := collection.InsertOne(context.TODO(), insertmodel)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Inserted a single document: ", insertResult.InsertedID)
-
 }
-func GetMessages(userid string) (messages []bson.D) {
+func GetMessages(client *mongo.Client, userid string) (messages []bson.D) {
 
-	collection := Client.Database("linemessage").Collection("linemessage")
-
-	fmt.Println("----------------------")
+	collection := client.Database("linemessage").Collection("linemessage")
 
 	projection := bson.D{
 		{"message", 1},
@@ -79,7 +72,6 @@ func GetMessages(userid string) (messages []bson.D) {
 	if err = cursor.All(context.TODO(), &messages); err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(messages)
 
 	return messages
 

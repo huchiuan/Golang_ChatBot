@@ -1,8 +1,6 @@
 package controller
 
 import (
-	"fmt"
-
 	"github.com/gin-gonic/gin"
 
 	configpackage "golang_chatbot/config"
@@ -13,42 +11,9 @@ import (
 	"github.com/line/line-bot-sdk-go/v7/linebot"
 )
 
-func QueryUserMessages(c *gin.Context) {
-	sqlbublic.ConnectToDB()
-	var requestbody model.ApiRequestBody
-
-	if err := c.BindJSON(&requestbody); err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println(requestbody.UserID)
-
-	messages := sqlbublic.GetMessages(requestbody.UserID)
-
-	c.JSON(200, messages)
-}
-
-func PushMessage(c *gin.Context) {
-
-	var requestbody model.ApiRequestBody
-
-	if err := c.BindJSON(&requestbody); err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println(requestbody.Message)
-
-	config, _ := configpackage.InitConfig()
-	bot, err := linebot.New(config.LineChannelSecret, config.LineChannelToken)
-	_, err = bot.BroadcastMessage(linebot.NewTextMessage(requestbody.Message)).Do()
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
 func ReceiveMessage(c *gin.Context) {
-	sqlbublic.ConnectToDB()
-	var err error
+	client := sqlbublic.ConnectToDB()
+
 	config, err := configpackage.InitConfig()
 
 	bot, err := linebot.New(config.LineChannelSecret, config.LineChannelToken)
@@ -64,20 +29,49 @@ func ReceiveMessage(c *gin.Context) {
 	}
 
 	for _, event := range events {
-		UserID := event.Source.UserID
-		Time := event.Timestamp
+		userID := event.Source.UserID
+		time := event.Timestamp
 		if event.Type == linebot.EventTypeMessage {
 			switch message := event.Message.(type) {
 
 			case *linebot.TextMessage:
 
-				sqlbublic.SaveMessage(UserID, message.Text, Time)
-				TimeToString := event.Timestamp.String()
-				if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("msg ID:"+message.ID+"\n\n文字內容:"+message.Text+"\n\n使用者ID: "+UserID+"\n\n時間: "+TimeToString)).Do(); err != nil {
+				sqlbublic.SaveMessage(client, userID, message.Text, time)
+				timeToString := event.Timestamp.String()
+				if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("msg ID:"+message.ID+"\n\n文字內容:"+message.Text+"\n\n使用者ID: "+userID+"\n\n時間: "+timeToString)).Do(); err != nil {
 					log.Print(err)
 				}
 
 			}
 		}
 	}
+}
+
+func PushMessage(c *gin.Context) {
+
+	var requestBody model.ApiRequestBody
+
+	if err := c.BindJSON(&requestBody); err != nil {
+		log.Fatal(err)
+	}
+
+	config, _ := configpackage.InitConfig()
+	bot, err := linebot.New(config.LineChannelSecret, config.LineChannelToken)
+	_, err = bot.BroadcastMessage(linebot.NewTextMessage(requestBody.Message)).Do()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func QueryUserMessages(c *gin.Context) {
+	client := sqlbublic.ConnectToDB()
+	var requestBody model.ApiRequestBody
+
+	if err := c.BindJSON(&requestBody); err != nil {
+		log.Fatal(err)
+	}
+
+	messages := sqlbublic.GetMessages(client, requestBody.UserID)
+
+	c.JSON(200, messages)
 }
