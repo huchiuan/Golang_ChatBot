@@ -33,6 +33,7 @@ func main() {
 
 	router.POST("/callback", controller.ReceiveMessage)
 	router.GET("/", controller.IndexHandler)
+	router.POST("/pushmessage", controller.PushMessage)
 
 	config, _ := configpackage.InitConfig()
 	port := config.Port

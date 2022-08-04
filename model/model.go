@@ -15,3 +15,7 @@ type LineMessage struct {
 	Message string    `json:"message"`
 	Time    time.Time `json:"time"`
 }
+
+type MessageRequestBody struct {
+	Message string
+}

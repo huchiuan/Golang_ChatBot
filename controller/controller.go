@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	configpackage "golang_chatbot/config"
+	model "golang_chatbot/model"
 	sqlbublic "golang_chatbot/sqlpublic"
 	"log"
 	"net/http"
@@ -13,6 +14,24 @@ import (
 
 	"github.com/line/line-bot-sdk-go/v7/linebot"
 )
+
+func PushMessage(c *gin.Context) {
+
+	var requestbody model.MessageRequestBody
+
+	if err := c.BindJSON(&requestbody); err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(requestbody.Message)
+
+	config, _ := configpackage.InitConfig()
+	bot, err := linebot.New(config.LineChannelSecret, config.LineChannelToken)
+	_, err = bot.BroadcastMessage(linebot.NewTextMessage(requestbody.Message)).Do()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 
 func IndexHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
