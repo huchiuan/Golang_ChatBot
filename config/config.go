@@ -6,8 +6,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-// var bot *linebot.Client
-
 func InitConfig() (config model.Config, err error) {
 
 	viper.SetConfigName("config")
@@ -22,7 +20,6 @@ func InitConfig() (config model.Config, err error) {
 	returnmodel := model.Config{
 		LineChannelSecret: viper.GetString("Line.ChannelSecret"),
 		LineChannelToken:  viper.GetString("Line.ChannelToken"),
-		Port:              viper.GetString("Server.Port"),
 		MongoAccount:      viper.GetString("MongoDB.MongoAccount"),
 		MongoPassword:     viper.GetString("MongoDB.MongoPassword"),
 	}

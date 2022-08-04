@@ -39,15 +39,6 @@ func ConnectToDB() {
 
 }
 
-func List() {
-	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-	databases, err := Client.ListDatabaseNames(ctx, bson.M{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(databases)
-}
-
 func SaveMessage(userid string, message string, time time.Time) {
 
 	collection := Client.Database("linemessage").Collection("linemessage")
@@ -64,5 +55,32 @@ func SaveMessage(userid string, message string, time time.Time) {
 	}
 
 	fmt.Println("Inserted a single document: ", insertResult.InsertedID)
+
+}
+func GetMessages(userid string) (messages []bson.D) {
+
+	collection := Client.Database("linemessage").Collection("linemessage")
+
+	fmt.Println("----------------------")
+
+	projection := bson.D{
+		{"message", 1},
+		{"_id", 0},
+	}
+
+	cursor, err := collection.Find(
+		context.TODO(),
+		bson.D{
+			{"userid", userid},
+		},
+		options.Find().SetProjection(projection),
+	)
+
+	if err = cursor.All(context.TODO(), &messages); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(messages)
+
+	return messages
 
 }

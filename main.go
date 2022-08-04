@@ -13,11 +13,8 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/gin-gonic/gin"
 
-	configpackage "golang_chatbot/config"
 	controller "golang_chatbot/controller"
 
 	// sqlbublic "golang_chatbot/sqlpublic"
@@ -32,13 +29,9 @@ func main() {
 	router := gin.Default()
 
 	router.POST("/callback", controller.ReceiveMessage)
-	router.GET("/", controller.IndexHandler)
 	router.POST("/pushmessage", controller.PushMessage)
+	router.POST("/queryusermessages", controller.QueryUserMessages)
 
-	config, _ := configpackage.InitConfig()
-	port := config.Port
-	addr := fmt.Sprintf(":%s", port)
-
-	router.Run(addr)
+	router.Run(":8888")
 
 }

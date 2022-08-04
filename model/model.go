@@ -11,11 +11,12 @@ type Config struct {
 }
 
 type LineMessage struct {
-	UserID  string    `json:"userId"`
+	UserID  string    `json:"userid"`
 	Message string    `json:"message"`
 	Time    time.Time `json:"time"`
 }
 
-type MessageRequestBody struct {
+type ApiRequestBody struct {
 	Message string
+	UserID  string
 }

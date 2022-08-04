@@ -9,15 +9,28 @@ import (
 	model "golang_chatbot/model"
 	sqlbublic "golang_chatbot/sqlpublic"
 	"log"
-	"net/http"
-	"strconv"
 
 	"github.com/line/line-bot-sdk-go/v7/linebot"
 )
 
+func QueryUserMessages(c *gin.Context) {
+	sqlbublic.ConnectToDB()
+	var requestbody model.ApiRequestBody
+
+	if err := c.BindJSON(&requestbody); err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(requestbody.UserID)
+
+	messages := sqlbublic.GetMessages(requestbody.UserID)
+
+	c.JSON(200, messages)
+}
+
 func PushMessage(c *gin.Context) {
 
-	var requestbody model.MessageRequestBody
+	var requestbody model.ApiRequestBody
 
 	if err := c.BindJSON(&requestbody); err != nil {
 		log.Fatal(err)
@@ -31,12 +44,6 @@ func PushMessage(c *gin.Context) {
 	if err != nil {
 		log.Fatal(err)
 	}
-}
-
-func IndexHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Hello q1mi!",
-	})
 }
 
 func ReceiveMessage(c *gin.Context) {
@@ -61,33 +68,15 @@ func ReceiveMessage(c *gin.Context) {
 		Time := event.Timestamp
 		if event.Type == linebot.EventTypeMessage {
 			switch message := event.Message.(type) {
-			// Handle only on text message
+
 			case *linebot.TextMessage:
-				// GetMessageQuota: Get how many remain free tier push message quota you still have this month. (maximum 500)
-				quota, err := bot.GetMessageQuota().Do()
-				if err != nil {
-					log.Println("Quota err:", err)
-				}
-				// message.ID: Msg unique ID
-				// message.Text: Msg text
 
 				sqlbublic.SaveMessage(UserID, message.Text, Time)
 				TimeToString := event.Timestamp.String()
-				if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("msg ID:"+message.ID+":"+"Get:"+message.Text+"使用者ID: "+UserID+"時間: "+TimeToString+" , \n OK! remain message:"+strconv.FormatInt(quota.Value, 10))).Do(); err != nil {
+				if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("msg ID:"+message.ID+"\n\n文字內容:"+message.Text+"\n\n使用者ID: "+UserID+"\n\n時間: "+TimeToString)).Do(); err != nil {
 					log.Print(err)
 				}
 
-			// Handle only on Sticker message
-			case *linebot.StickerMessage:
-				var kw string
-				for _, k := range message.Keywords {
-					kw = kw + "," + k
-				}
-
-				outStickerResult := fmt.Sprintf("收到貼圖訊息: %s, pkg: %s kw: %s  text: %s ", message.StickerID, message.PackageID, kw, message.Text)
-				if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(outStickerResult)).Do(); err != nil {
-					log.Print(err)
-				}
 			}
 		}
 	}
